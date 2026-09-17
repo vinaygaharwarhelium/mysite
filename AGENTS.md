@@ -4,7 +4,7 @@ Edge Delivery Services. Read a block first. Omissions are in the repo or known.
 
 ## Avoid
 - `scripts/aem.js` is vendored. Never edit.
-- Markup comes from the backend. `curl localhost:3000/x.plain.html` first.
+- Markup comes from the backend. `curl localhost:3001/x.plain.html` first.
 - `buildAutoBlocks` rewrites content before your block runs.
 - Authors omit and add cells. Decorate defensively.
 - No build step; devDependencies only.
@@ -15,7 +15,7 @@ Edge Delivery Services. Read a block first. Omissions are in the repo or known.
 - `fstab.yaml`, `helix-query.yaml`, `paths.json` are retired. Config lives at tools.aem.live.
 
 ## Remember
-- `npx -y @adobe/aem-cli up`: local code, previewed content.
+- `npm run dev`: local code on `http://localhost:3001`, previewed content.
 - Merging `main` ships code; content publishes separately.
 - A PR without a `{branch}--{repo}--{owner}.aem.page/{path}` link is rejected.
 - All committed files are served. Use `.hlxignore`.

@@ -12,6 +12,54 @@ import {
   buildBlock,
 } from './aem.js';
 
+function isEmbeddedPage(url = window.location.href) {
+  try {
+    return new URL(url, window.location.href)
+      .searchParams
+      .get('embedded') === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function getParentOrigin() {
+  try {
+    if (document.referrer) return new URL(document.referrer).origin;
+  } catch {
+    // Use wildcard fallback when the embedding page is not available.
+  }
+
+  return '*';
+}
+
+function bindEmbeddedPageResize(doc) {
+  if (window.parent === window) return;
+
+  const sendHeight = () => {
+    window.parent.postMessage(
+      {
+        type: 'iframe-block-resize',
+        height: Math.ceil(doc.documentElement.scrollHeight),
+      },
+      getParentOrigin(),
+    );
+  };
+
+  window.addEventListener('load', sendHeight);
+  window.addEventListener('resize', sendHeight);
+  if (window.ResizeObserver) {
+    const observer = new ResizeObserver(sendHeight);
+    observer.observe(doc.documentElement);
+  }
+  sendHeight();
+}
+
+function decorateEmbeddedPage(doc) {
+  doc.querySelector('body > header')?.remove();
+  doc.querySelector('body > footer')?.remove();
+  bindEmbeddedPageResize(doc);
+}
+
 if (window.trustedTypes && window.trustedTypes.createPolicy) {
   const innerTT = window.trustedTypes.createPolicy('tt-inner', {
     createHTML: (s) => s, // avoid stack overflow
@@ -184,7 +232,13 @@ async function loadEager(doc) {
  * @param {Element} doc The container element
  */
 async function loadLazy(doc) {
-  loadHeader(doc.querySelector('body > header'));
+  const embeddedPage = isEmbeddedPage();
+
+  if (embeddedPage) {
+    decorateEmbeddedPage(doc);
+  } else {
+    loadHeader(doc.querySelector('body > header'));
+  }
 
   const main = doc.querySelector('main');
   await loadSections(main);
@@ -193,7 +247,9 @@ async function loadLazy(doc) {
   const element = hash ? doc.getElementById(hash.substring(1)) : false;
   if (hash && element) element.scrollIntoView();
 
-  loadFooter(doc.querySelector('body > footer'));
+  if (!embeddedPage) {
+    loadFooter(doc.querySelector('body > footer'));
+  }
 
   loadCSS(`${window.hlx.codeBasePath}/styles/lazy-styles.css`);
   loadFonts();
